@@ -7,13 +7,12 @@ class DataLoader():
         self.data, self.train_data, self.val_data = None, None, None
 
     def loadData(self):
-        # wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
         with open(self.dataPath, 'r', encoding='utf-8') as f:
             self.data = f.read()
 
-    def splitData(self, encode):
+    def splitData(self, model):
         # Train and test splits
-        data = torch.tensor(encode(self.data), dtype=torch.long)
+        data = torch.tensor(model.encode(self.data), dtype=torch.long)
         n = int(0.9*len(data)) # first 90% will be train, rest val
         self.train_data = data[:n]
         self.val_data = data[n:]

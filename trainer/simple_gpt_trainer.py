@@ -3,13 +3,11 @@ import logging
 
 class SimpleGPTTrainer():
 
-    
-
     def __init__(self, model, gptConfig, dataLoader):
         self.model = model
         self.gptConfig = gptConfig
         self.dataLoader = dataLoader
-        self.logger = logging.getLogger('spam')
+        self.logger = logging.getLogger(SimpleGPTTrainer.__name__)
 
     def train(self):
         # create a PyTorch optimizer

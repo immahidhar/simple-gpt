@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+import dataclasses
 
-@dataclass
+@dataclasses.dataclass
 class SimpleGPTConfig():
     """ A convenient config class to hold all the hyperparameters """
     vocab_size = None
@@ -15,3 +15,10 @@ class SimpleGPTConfig():
     n_head = 4
     n_layer = 4
     dropout = 0.0
+
+    def __repr__(self):
+        """Returns a string containing only the non-default field values."""
+        s = ', '.join(f'{field.name}={getattr(self, field.name)!r}'
+                    for field in dataclasses.fields(self)
+                    if getattr(self, field.name) != field.default)
+        return f'{type(self).__name__}({s})'

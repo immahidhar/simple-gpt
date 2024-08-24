@@ -16,44 +16,55 @@ def main():
     args, gptConfig = parse_arguments()
 
     # for reproducability
-    torch.manual_seed(1337)
+    # torch.manual_seed(1337)
 
-    # load data
-    logging.info(f'loading data from {args.dataPath} ...')
-    dataLoader = DataLoader(dataPath=args.dataPath, gptConfig=gptConfig)
-    dataLoader.loadData()
+    if args.train == 'true':
+        # load data
+        logging.info(f'loading data from {args.dataPath} ...')
+        dataLoader = DataLoader(dataPath=args.dataPath, gptConfig=gptConfig)
+        dataLoader.loadData()
 
-    # here are all the unique characters that occur in this text
-    logging.info(f'creating embeddings for loaded data ...')
-    chars = sorted(list(set(dataLoader.data)))
-    gptConfig.vocab_size = len(chars)
-    logging.info(f'vocabulary size is {gptConfig.vocab_size}')
-    # create a mapping from characters to integers
-    stoi = { ch:i for i,ch in enumerate(chars) }
-    itos = { i:ch for i,ch in enumerate(chars) }
-    encode = lambda s: [stoi[c] for c in s] # encoder: take a string, output a list of integers
-    decode = lambda l: ''.join([itos[i] for i in l]) # decoder: take a list of integers, output a string
+        # here are all the unique characters that occur in this text
+        chars = sorted(list(set(dataLoader.data)))
+        gptConfig.vocab_size = len(chars)
+        logging.info(f'vocabulary size is {gptConfig.vocab_size}')
+        logging.debug(f'voabulary - {chars}')
 
-    # slit training and validation data
-    logging.info(f'preparing data for training ...')
-    dataLoader.splitData(encode=encode)
 
-    logging.info(f'creating the model')
-    model = SimpleGPT(gptConfig)
-    gpt = model.to(gptConfig.device)
-    # print the number of parameters in the model
-    logging.info(f'{sum(p.numel() for p in gpt.parameters())/1e6} million parameters')
+        logging.info(f'creating the model')
+        model = SimpleGPT(gptConfig)
+        model.createMappings(chars)    
 
-    gptTrainer = SimpleGPTTrainer(model, gptConfig, dataLoader)
-    logging.info(f'training the model ...')
-    gptTrainer.train()
-    logging.info(f'training done!')
+        gpt = model.to(gptConfig.device)
+        # print the number of parameters in the model
+        logging.info(f'{sum(p.numel() for p in gpt.parameters())/1e6} million parameters')
+
+        # slit training and validation data
+        logging.info(f'preparing data for training ...')
+        dataLoader.splitData(model)
+
+        # training
+        gptTrainer = SimpleGPTTrainer(model, gptConfig, dataLoader)
+        logging.info(f'training the model ...')
+        gptTrainer.train()
+        logging.info(f'training done!')
+
+        # save model
+        logging.info(f'saving the model for future use')
+        torch.save(model, 'models/gpt.model')
+        logging.info(f'saved at models/gpt.model')
+    
+    else:
+        logging.info(f'loading model from previously trained save at models/gpt.model')
+        model = torch.load('models/gpt.model')
+        model.eval()
+        gpt = model.to(gptConfig.device)
 
     # generate from the model
     context = torch.zeros((1, 1), dtype=torch.long, device=gptConfig.device)
-    logging.info(f'samling the model')
-    print(decode(gpt.generate(context, max_new_tokens=500)[0].tolist()))
-    #open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
+    logging.info(f'sampling the model')
+    print(model.decode(gpt.generate(context, max_new_tokens=args.max_new_tokens)[0].tolist()))
+    #open('out.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
 
 
 def setupGPTConfig(args):
@@ -70,7 +81,6 @@ def setupGPTConfig(args):
     gptConfig.n_head = args.n_head
     gptConfig.n_layer = args.n_layer
     gptConfig.dropout = args.dropout
-    logging.info(gptConfig)
     return gptConfig
 
 def parse_arguments() -> argparse.Namespace:
@@ -79,19 +89,21 @@ def parse_arguments() -> argparse.Namespace:
     :return: namespace with arguments
     """
     parser = argparse.ArgumentParser("python3 gpt_run.py")
-    parser.add_argument("dataPath", nargs='?', help=" param desc", type=str, default='data/DarkKnight.txt')
-    parser.add_argument("batch_size", nargs='?', help=" param desc", type=int, default=16) # 64 # how many independent sequences will we process in parallel?
-    parser.add_argument("block_size", nargs='?', help=" param desc", type=int, default=32)  # 256 # what is the maximum context length for predictions?    
-    parser.add_argument("n_embd", nargs='?', help=" param desc", type=int, default=64) # 384
-    parser.add_argument("n_head", nargs='?', help=" param desc", type=int, default=4) # 6
-    parser.add_argument("n_layer", nargs='?', help=" param desc", type=int, default=4) # 6
-    parser.add_argument("dropout", nargs='?', help=" param desc", type=int, default=0) # 0.2
-    parser.add_argument("max_iters", nargs='?', help=" param desc", type=int, default=5000)
-    parser.add_argument("eval_iters", nargs='?', help=" param desc", type=int, default=200)
-    parser.add_argument("eval_interval", nargs='?', help=" param desc", type=int, default=100) # 500
-    parser.add_argument("learning_rate", nargs='?', help=" param desc", type=int, default=1e-3) # 3e-4
-    parser.add_argument("max_new_tokens", nargs='?', help=" param desc", type=int, default=500) # 10000
+    parser.add_argument('-t', "--train", required=False, help=" param desc", type=str, default='true')
+    parser.add_argument('-d', "--dataPath", required=False, help=" param desc", type=str, default='data/input.txt')
+    parser.add_argument("--batch_size", required=False, help=" param desc", type=int, default=16) # 64 # how many independent sequences will we process in parallel?
+    parser.add_argument("--block_size", required=False, help=" param desc", type=int, default=32)  # 256 # what is the maximum context length for predictions?    
+    parser.add_argument("--n_embd", required=False, help=" param desc", type=int, default=64) # 384
+    parser.add_argument("--n_head", required=False, help=" param desc", type=int, default=4) # 6
+    parser.add_argument("--n_layer", required=False, help=" param desc", type=int, default=4) # 6
+    parser.add_argument("--dropout", required=False, help=" param desc", type=float, default=0.1) # 0.2
+    parser.add_argument('-m', "--max_iters", required=False, help=" param desc", type=int, default=5000)
+    parser.add_argument("--eval_iters", required=False, help=" param desc", type=int, default=200)
+    parser.add_argument("--eval_interval", required=False, help=" param desc", type=int, default=100) # 500
+    parser.add_argument('-l', "--learning_rate", required=False, help=" param desc", type=float, default=1e-4) # 3e-4
+    parser.add_argument('-o', "--max_new_tokens", required=False, help=" param desc", type=int, default=1000) # 10000
     namespace = parser.parse_args()
+    logging.info(namespace)
     return namespace, setupGPTConfig(namespace)
 
 

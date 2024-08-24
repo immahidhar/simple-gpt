@@ -9,6 +9,8 @@ class SimpleGPT(nn.Module):
     def __init__(self, gptConfig):
         super().__init__()
         self.gptConfig = gptConfig
+        self.encodeMap = None
+        self.decodeMap = None
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(gptConfig.vocab_size, gptConfig.n_embd)
         self.position_embedding_table = nn.Embedding(gptConfig.block_size, gptConfig.n_embd)
@@ -25,6 +27,19 @@ class SimpleGPT(nn.Module):
                 torch.nn.init.zeros_(module.bias)
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+    def createMappings(self, tokens):
+        # create a mapping from characters to integers
+        self.encodeMap = { token:i for i,token in enumerate(tokens) }
+        self.decodeMap = { i:token for i,token in enumerate(tokens) }
+
+    def encode(self, s):
+        # encoder: take a string, output a list of integers
+        return [self.encodeMap[c] for c in s]
+
+    def decode(self, l):
+        # decoder: take a list of integers, output a string
+        return ''.join([self.decodeMap[i] for i in l])
 
     def forward(self, idx, targets=None):
         B, T = idx.shape
