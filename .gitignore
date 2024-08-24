@@ -1,3 +1,25 @@
+# secrets
+credentials.json
+token.json
+client_secret.json
+gmail_token.json
+*.secret
+*.pickle
+
+# VS code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Random
+.DS_Store
+data/*
+*dev.ipynb
+models/*.model
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
