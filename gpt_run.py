@@ -70,7 +70,10 @@ def main():
 def setupGPTConfig(args):
     # configuration of gpt hyperparameters
     gptConfig = SimpleGPTConfig()
-    gptConfig.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    if args.device is None:
+        gptConfig.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    else:
+        gptConfig.device = args.device
     gptConfig.batch_size = args.batch_size
     gptConfig.block_size = args.block_size
     gptConfig.max_iters = args.max_iters
@@ -91,16 +94,17 @@ def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser("python3 gpt_run.py")
     parser.add_argument('-t', "--train", required=False, help=" param desc", type=str, default='true')
     parser.add_argument('-d', "--dataPath", required=False, help=" param desc", type=str, default='data/input.txt')
+    parser.add_argument("--device", required=False, help=" param desc", type=str, default=None)
     parser.add_argument("--batch_size", required=False, help=" param desc", type=int, default=16) # 64 # how many independent sequences will we process in parallel?
     parser.add_argument("--block_size", required=False, help=" param desc", type=int, default=32)  # 256 # what is the maximum context length for predictions?    
-    parser.add_argument("--n_embd", required=False, help=" param desc", type=int, default=64) # 384
-    parser.add_argument("--n_head", required=False, help=" param desc", type=int, default=4) # 6
-    parser.add_argument("--n_layer", required=False, help=" param desc", type=int, default=4) # 6
-    parser.add_argument("--dropout", required=False, help=" param desc", type=float, default=0.1) # 0.2
+    parser.add_argument("--n_embd", required=False, help=" param desc", type=int, default=128) # 384
+    parser.add_argument("--n_head", required=False, help=" param desc", type=int, default=6) # 6
+    parser.add_argument("--n_layer", required=False, help=" param desc", type=int, default=6) # 6
+    parser.add_argument("--dropout", required=False, help=" param desc", type=float, default=0.2) # 0.2
     parser.add_argument('-m', "--max_iters", required=False, help=" param desc", type=int, default=5000)
     parser.add_argument("--eval_iters", required=False, help=" param desc", type=int, default=200)
-    parser.add_argument("--eval_interval", required=False, help=" param desc", type=int, default=100) # 500
-    parser.add_argument('-l', "--learning_rate", required=False, help=" param desc", type=float, default=1e-4) # 3e-4
+    parser.add_argument("--eval_interval", required=False, help=" param desc", type=int, default=500) # 500
+    parser.add_argument('-l', "--learning_rate", required=False, help=" param desc", type=float, default=8e-5) # 3e-4
     parser.add_argument('-o', "--max_new_tokens", required=False, help=" param desc", type=int, default=1000) # 10000
     namespace = parser.parse_args()
     logging.info(namespace)
